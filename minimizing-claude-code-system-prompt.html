@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimizing Claude Code's System Prompt &amp; Injected Context</title>
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #5c6672;
+    --bg: #ffffff;
+    --accent: #b8471f;
+    --border: #e3e6ea;
+    --code-bg: #f6f8fa;
+    --warn-bg: #fff8e6;
+    --warn-border: #f0d48a;
+    --ok-bg: #eef7ef;
+    --ok-border: #b8dcbc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+    color: var(--fg);
+    background: var(--bg);
+  }
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+  }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; }
+  h2 { font-size: 1.35rem; margin: 2.6rem 0 .8rem; padding-bottom: .3rem; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1.1rem; margin: 1.8rem 0 .5rem; }
+  p { margin: .7rem 0; }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin-top: 0; }
+  .meta { color: var(--muted); font-size: .85rem; margin-bottom: 2rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: .12em .38em;
+    border-radius: 4px;
+    font-size: .88em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-size: .86rem;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; }
+  a { color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  td code { white-space: nowrap; }
+  .callout { border-radius: 8px; padding: .9rem 1.1rem; margin: 1.2rem 0; border: 1px solid var(--border); }
+  .callout.key { background: var(--warn-bg); border-color: var(--warn-border); }
+  .callout.ok { background: var(--ok-bg); border-color: var(--ok-border); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; vertical-align: middle; }
+  .tag.confident { background: var(--ok-bg); color: #2a6b31; border: 1px solid var(--ok-border); }
+  .tag.unverified { background: var(--warn-bg); color: #8a6100; border: 1px solid var(--warn-border); }
+  ul { padding-left: 1.3rem; }
+  li { margin: .35rem 0; }
+  footer { margin-top: 3.5rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Minimizing Claude Code's System Prompt &amp; Injected Context</h1>
+  <p class="subtitle">What you can and cannot turn off through <code>settings.json</code>, plus the CLI-only ways to actually replace the system prompt.</p>
+  <p class="meta">Last updated: 2026-07-18</p>
+
+  <div class="callout key">
+    <p><strong>Read this first.</strong> <code>settings.json</code> <em>cannot</em> disable the main system prompt. The large block of instructions Claude Code sends is fixed and not removable through settings. What <code>settings.json</code> <em>can</em> do is trim <strong>injected context</strong> and turn off <strong>nonessential traffic and features</strong>.</p>
+    <p>To actually shrink or replace the system prompt text itself, you need <strong>CLI flags</strong> or an <strong>output style</strong> — not <code>settings.json</code>.</p>
+  </div>
+
+  <h2>1. The only real ways to reduce the system prompt itself</h2>
+  <p>These are <strong>CLI-only</strong>. They do <em>not</em> go in <code>settings.json</code>:</p>
+<pre><code># Replace the default system prompt entirely
+claude --system-prompt "You are a terse coding assistant."
+
+# Add to the default without removing anything
+claude --append-system-prompt "Be concise."</code></pre>
+  <p>Or persist your own prompt via an <strong>output style</strong>. Create <code>~/.claude/output-styles/mine.md</code>, then point <code>settings.json</code> at it with <code>"outputStyle": "mine"</code>. An output style is the one supported <em>persistent</em> way to strip Claude Code's coding instructions and swap in your own.</p>
+
+  <h2>2. settings.json — reduces traffic and context, not the prompt</h2>
+  <p>This snippet is safe to paste. Every key/value below is one I'm <strong>confident is real</strong>:</p>
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_BUG_COMMAND": "1",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "includeCoAuthoredBy": false,
+  "cleanupPeriodDays": 1,
+  "disableAllHooks": true,
+  "outputStyle": "Default"
+}</code></pre>
+
+  <h3>What each confident option does</h3>
+  <table>
+    <thead>
+      <tr><th>Key</th><th>Effect</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC</code></td><td>Umbrella toggle: disables telemetry, error reporting, the autoupdater, and the <code>/bug</code> command together.</td></tr>
+      <tr><td><code>DISABLE_NON_ESSENTIAL_MODEL_CALLS</code></td><td>Skips background model calls used for flavor/non-critical features.</td></tr>
+      <tr><td><code>DISABLE_TELEMETRY</code></td><td>Disables usage telemetry.</td></tr>
+      <tr><td><code>DISABLE_ERROR_REPORTING</code></td><td>Disables error reporting.</td></tr>
+      <tr><td><code>DISABLE_BUG_COMMAND</code></td><td>Disables the <code>/bug</code> command.</td></tr>
+      <tr><td><code>DISABLE_AUTOUPDATER</code></td><td>Disables automatic updates.</td></tr>
+      <tr><td><code>includeCoAuthoredBy</code></td><td><code>false</code> removes the Claude co-author line from git commits.</td></tr>
+      <tr><td><code>cleanupPeriodDays</code></td><td>Aggressively cleans old session files (minimum 1).</td></tr>
+      <tr><td><code>disableAllHooks</code></td><td>Disables custom hooks and status lines (less injected hook content).</td></tr>
+      <tr><td><code>outputStyle</code></td><td>Selects the active output style; this is where you'd reference a custom prompt style.</td></tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted); font-size:.9rem;">Note: <code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC</code> already covers telemetry, error reporting, the autoupdater, and <code>/bug</code>, so the granular vars beneath it are somewhat redundant — kept here for explicitness.</p>
+
+  <h2>3. Reported by the docs lookup, but NOT independently verified</h2>
+  <div class="callout key">
+    <p>Add these at your own risk and test each one against your installed version. I could not confirm the exact key names, and several affect features / token spend rather than the "system prompt" as such.</p>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Claimed effect</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>autoCompactEnabled: false</code> / <code>DISABLE_AUTO_COMPACT</code></td><td>Disable automatic context compaction.</td><td><span class="tag unverified">unverified name</span></td></tr>
+      <tr><td><code>CLAUDE_CODE_ATTRIBUTION_HEADER: "0"</code></td><td>Trim an attribution block from the start of the prompt.</td><td><span class="tag unverified">unverified</span></td></tr>
+      <tr><td><code>--exclude-dynamic-system-prompt-sections</code> (CLI)</td><td>Drop cwd / OS / platform lines from the prompt.</td><td><span class="tag unverified">unverified</span></td></tr>
+      <tr><td><code>disableBundledSkills</code></td><td>Hide bundled skills from the model.</td><td><span class="tag unverified">unverified</span></td></tr>
+      <tr><td><code>spinnerTipsEnabled: false</code></td><td>Disable spinner tips (UI only).</td><td><span class="tag unverified">unverified</span></td></tr>
+      <tr><td><code>effortLevel</code> / <code>fastMode</code></td><td>Trade reasoning depth for speed / fewer tokens.</td><td><span class="tag unverified">unverified as settings keys</span></td></tr>
+      <tr><td><code>MAX_THINKING_TOKENS</code></td><td>Cap the extended-thinking budget per request.</td><td><span class="tag confident">likely real env var</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Recommendation</h2>
+  <div class="callout ok">
+    <p>If your real goal is <strong>fewer tokens / a leaner prompt</strong>, the highest-impact moves are:</p>
+    <ul>
+      <li>Use CLI <code>--system-prompt</code> (or a custom output style) to <strong>replace</strong> the prompt.</li>
+      <li>Set <code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1</code> in <code>settings.json</code>.</li>
+    </ul>
+    <p style="margin-bottom:0;">Everything else is marginal.</p>
+  </div>
+
+  <h2>Caveats</h2>
+  <ul>
+    <li>You cannot put <code>--system-prompt</code> or <code>--append-system-prompt</code> into <code>settings.json</code>; they are CLI-only. <code>outputStyle</code> is the only persistent prompt-modification setting.</li>
+    <li><code>disableAllHooks</code> disables <em>your</em> hooks and status line, but built-in tool-call handling is still enforced internally.</li>
+    <li>Output styles <em>modify</em> the system prompt (add/replace instructions); they do not strip it to nothing. Only a custom <code>--system-prompt</code> string fully replaces it.</li>
+    <li><code>CLAUDE.md</code> is not a system-prompt modification — it is injected as project context, separate from the system prompt.</li>
+  </ul>
+
+  <footer>
+    Compiled from Claude Code documentation. Items marked <span class="tag unverified">unverified</span> were reported by an automated docs lookup and should be tested against your installed version (e.g. <code>claude --help</code>) before relying on them.
+  </footer>
+</main>
+</body>
+</html>
