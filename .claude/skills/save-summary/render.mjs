@@ -347,6 +347,10 @@ function renderMessage(markdown) {
 // --- ANSI -> HTML (ansi_up does the styling; we only add the page shell) ----
 
 function toHtml(ansi, title) {
+  // ansi_up drops SGR 9/29 (strikethrough); tunnel it through private-use chars.
+  const S_OPEN = "";
+  const S_CLOSE = "";
+  ansi = ansi.replace(/\x1B\[9m/g, S_OPEN).replace(/\x1B\[29m/g, S_CLOSE);
   const up = new AnsiUp();
   up.use_classes = false;
   const parts = [];
@@ -360,7 +364,10 @@ function toHtml(ansi, title) {
     last = re.lastIndex;
   }
   parts.push(up.ansi_to_html(ansi.slice(last)));
-  const body = parts.join("");
+  const body = parts
+    .join("")
+    .replaceAll(S_OPEN, '<span style="text-decoration:line-through">')
+    .replaceAll(S_CLOSE, "</span>");
   return [
     "<!doctype html>",
     '<html><head><meta charset="utf-8">',
