@@ -32,7 +32,7 @@ import time
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent
-DEFAULT_OUT_DIR = Path.home() / "log" / "claude"
+DEFAULT_OUT_DIR = Path("/tmp/log/claude")
 
 
 def project_dir(cwd: Path) -> Path:

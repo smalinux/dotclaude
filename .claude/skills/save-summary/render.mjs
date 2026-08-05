@@ -4,10 +4,11 @@
 // marked (lexer), chalk (styling), cli-highlight (hljs code blocks),
 // string-width / wrap-ansi (table layout). ANSI -> HTML via ansi_up.
 //
-// stdin:  markdown
+// stdin:  markdown (or ready-made ANSI with --from-ansi)
 // stdout: HTML document (default) or raw ANSI with --ansi
 // flags:  --width N   layout width for tables (default 100)
 //         --ansi      emit ANSI instead of HTML
+//         --from-ansi treat stdin as ANSI and only do the HTML conversion
 //         --no-marker do not prefix the message with the CLI's "●" marker
 
 import { marked } from "marked";
@@ -25,7 +26,7 @@ const NL = "\n";
 const BLOCKQUOTE_BAR = "▎"; // dim vertical bar, as in the CLI
 // Default dark theme colors lifted from the CLI's theme table.
 const THEME = {
-  permission: [87, 105, 247], // inline code
+  permission: [177, 185, 249], // inline code, dark theme
 };
 const OSC_OPEN = "\x1B]8;;";
 const OSC_CLOSE = "\x07";
@@ -347,6 +348,8 @@ function renderMessage(markdown) {
 // --- ANSI -> HTML (ansi_up does the styling; we only add the page shell) ----
 
 function toHtml(ansi, title) {
+  // Stray control bytes (binary tool output) derail ansi_up's parser.
+  ansi = ansi.replace(/[\x00-\x06\x08\x0B\x0C\x0E-\x1A\x1C-\x1F\x7F]/g, "");
   // ansi_up drops SGR 9/29 (strikethrough); tunnel it through private-use chars.
   const S_OPEN = "";
   const S_CLOSE = "";
@@ -381,16 +384,16 @@ function toHtml(ansi, title) {
 
 // --- main -------------------------------------------------------------------
 
-let markdown = "";
+let input = "";
 process.stdin.setEncoding("utf-8");
-for await (const chunk of process.stdin) markdown += chunk;
-markdown = markdown.trim();
-if (!markdown) {
+for await (const chunk of process.stdin) input += chunk;
+input = input.trim();
+if (!input) {
   console.error("render.mjs: empty input");
   process.exit(1);
 }
 
-const ansi = renderMessage(markdown);
+const ansi = flag("--from-ansi") ? input : renderMessage(input);
 if (flag("--ansi")) {
   process.stdout.write(ansi + NL);
 } else {

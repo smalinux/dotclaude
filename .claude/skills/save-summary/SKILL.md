@@ -12,8 +12,8 @@ CLI's own renderer:
 python3 ~/.claude/skills/save-summary/save_summary.py $ARGUMENTS
 ```
 
-- No argument: writes `~/log/claude/claude-summary-<timestamp>.html`.
-- An argument like `~/log/claude/file.html` is the output path.
+- No argument: writes `/tmp/log/claude/claude-summary-<timestamp>.html`.
+- An argument like `/tmp/log/claude/file.html` is the output path.
 - `-n N` picks the Nth reply from the end (default: the previous one).
 - `--turn` saves the whole turn, `--raw` saves markdown, `--ansi` saves ANSI.
 - `--list` shows what can be saved.
