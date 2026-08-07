@@ -8,10 +8,13 @@ Browse the notes with Obsidian, or render one to CLI-style HTML in the
 browser with the `2brain` script that lives next to them.
 
 Usage:
-    remember.py [TITLE...] [-n N] [--turn] [--list] [--stdout]
+    remember.py [TITLE... | OUT.md] [-n N] [--turn] [--list] [--stdout]
 
     TITLE      words for the note title -> notes/YYYY-MM-DD-<title-slug>.md
-               (default: slug of the reply's first line)
+    OUT.md     a single word containing "/" or ending in ".md" is the
+               output path itself (relative names land in notes/)
+    (none)     notes/claude-note-<YYYYmmdd-HHMMSS>.md — the same
+               timestamp naming /save-summary uses
     -n N       Nth reply from the end (default 1 = the previous reply)
     --turn     save every text message of the turn, not only its final one
     --list     list saveable replies and exit
@@ -103,14 +106,6 @@ def slugify(text: str, max_len: int = 60) -> str:
     return slug[:max_len].rstrip("-") or "note"
 
 
-def first_line_title(markdown: str) -> str:
-    for line in markdown.splitlines():
-        line = re.sub(r"[#*_`>\[\]]", "", line).strip()
-        if line:
-            return line
-    return "note"
-
-
 def compose_note(markdown: str, cwd: Path) -> str:
     created = time.strftime("%Y-%m-%dT%H:%M:%S")
     frontmatter = "\n".join(
@@ -119,12 +114,21 @@ def compose_note(markdown: str, cwd: Path) -> str:
     return f"{frontmatter}\n\n{markdown.strip()}\n"
 
 
-def note_path(title: str) -> Path:
-    stem = f"{time.strftime('%Y-%m-%d')}-{slugify(title)}"
-    out = NOTES_DIR / f"{stem}.md"
-    i = 2
+def note_path(title_words: list[str]) -> Path:
+    if len(title_words) == 1 and ("/" in title_words[0] or title_words[0].endswith(".md")):
+        out = Path(title_words[0]).expanduser()
+        if out.suffix != ".md":
+            out = out.with_name(out.name + ".md")
+        if not out.is_absolute():
+            out = NOTES_DIR / out
+    elif title_words:
+        stem = f"{time.strftime('%Y-%m-%d')}-{slugify(' '.join(title_words))}"
+        out = NOTES_DIR / f"{stem}.md"
+    else:
+        out = NOTES_DIR / f"claude-note-{time.strftime('%Y%m%d-%H%M%S')}.md"
+    first, i = out, 2
     while out.exists():
-        out = NOTES_DIR / f"{stem}-{i}.md"
+        out = first.with_name(f"{first.stem}-{i}.md")
         i += 1
     return out
 
@@ -154,8 +158,7 @@ def main() -> int:
         sys.stdout.write(note)
         return 0
 
-    title = " ".join(args.title) if args.title else first_line_title(markdown)
-    out = note_path(title)
+    out = note_path(args.title or [])
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(note, encoding="utf-8")
     print(out)
