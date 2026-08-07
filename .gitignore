@@ -1,0 +1,35 @@
+# --- node (skill deps; restore with `npm ci` in each skill dir) ---
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- logs & scratch ---
+*.log
+*.tmp
+*.bak
+
+# --- secrets (settings.json is tracked on purpose) ---
+.env
+.env.*
+*.pem
+*.key
+.credentials.json
+
+# --- editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.netrwhist
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+Desktop.ini
